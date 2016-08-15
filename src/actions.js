@@ -1,64 +1,20 @@
 import fetch from 'isomorphic-fetch';
 
-export const REQUEST_POSTS = 'REQUEST_POSTS';
-export const RECEIVE_POSTS = 'RECEIVE_POSTS';
-export const SELECT_REDDIT = 'SELECT_REDDIT';
-export const INVALIDATE_REDDIT = 'INVALIDATE_REDDIT';
+export const RECEIVE_USER_INFO = "RECEIVE_USER_INFO";
 
-export function selectReddit(reddit) {
-  return {
-    type: SELECT_REDDIT,
-    reddit
-  };
-}
-
-export function invalidateReddit(reddit) {
-  return {
-    type: INVALIDATE_REDDIT,
-    reddit
-  };
-}
-
-function requestPosts(reddit) {
-  return {
-    type: REQUEST_POSTS,
-    reddit
-  };
-}
-
-function receivePosts(reddit, json) {
-  return {
-    type: RECEIVE_POSTS,
-    reddit,
-    posts: json.data.children.map(child => child.data),
-    receivedAt: Date.now()
-  };
-}
-
-function fetchPosts(reddit) {
-  return dispatch => {
-    dispatch(requestPosts(reddit));
-    return fetch(`http://www.reddit.com/r/${reddit}.json`)
-      .then(req => req.json())
-      .then(json => dispatch(receivePosts(reddit, json)));
-  }
-}
-
-function shouldFetchPosts(state, reddit) {
-  const posts = state.postsByReddit[reddit];
-  if (!posts) {
-    return true;
-  } else if (posts.isFetching) {
-    return false;
-  } else {
-    return posts.didInvalidate;
-  }
-}
-
-export function fetchPostsIfNeeded(reddit) {
-  return (dispatch, getState) => {
-    if (shouldFetchPosts(getState(), reddit)) {
-      return dispatch(fetchPosts(reddit));
+function makeInfo(FBId, data) {
+    return {
+        type: RECEIVE_USER_INFO,
+        FBId: FBId,
+        data: data
     }
-  };
+}
+
+export function requestInfo(FBId) {
+    return function (dispatch) {
+        return fetch(`https://graph.facebook.com/${FBId}/?fields=first_name,last_name,cover&access_token=1600426660257642|f7WhVDODh9N1hcSrDCWsgv7Uo6k`)
+            .then((response) => response.json() ) //implicit return
+            .then((json) => dispatch(makeInfo(FBId, json))
+            );
+    }
 }

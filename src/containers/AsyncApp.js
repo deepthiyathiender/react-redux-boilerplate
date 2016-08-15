@@ -1,102 +1,107 @@
-import React, { Component, PropTypes } from 'react';
-import { connect } from 'react-redux';
-import { selectReddit, fetchPostsIfNeeded, invalidateReddit } from '../actions';
-import Picker from '../components/Picker';
-import Posts from '../components/Posts';
+import React, {Component, PropTypes} from 'react';
+import {connect} from 'react-redux';
+import Gravatar from '../components/Gravatar';
+import Finder from '../components/Finder';
+import {requestInfo} from '../actions';
+import { Link } from 'react-router';
+import { Tabs, Tab } from 'react-bootstrap';
+import About from '../components/About';
+import Repos from '../components/Repos';
 
 class AsyncApp extends Component {
-  constructor(props) {
-    super(props);
-    this.handleChange = this.handleChange.bind(this);
-    this.handleRefreshClick = this.handleRefreshClick.bind(this);
-  }
 
-  componentDidMount() {
-    const { dispatch, selectedReddit } = this.props;
-    dispatch(fetchPostsIfNeeded(selectedReddit));
-  }
 
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.selectedReddit !== this.props.selectedReddit) {
-      const { dispatch, selectedReddit } = nextProps;
-      dispatch(fetchPostsIfNeeded(selectedReddit));
+    constructor(props) {
+        super(props);
+        this.onClickHandler = this.onClickHandler.bind(this);
+        this.onChangeHandler = this.onChangeHandler.bind(this);
+        this.onFindClickHandler = this.onFindClickHandler.bind(this);
+
+        this.state = {
+            finder: {
+                value: []
+            }
+        }
     }
-  }
 
-  handleChange(nextReddit) {
-    this.props.dispatch(selectReddit(nextReddit));
-  }
+    onClickHandler() {
+        const {dispatch} = this.props;
+        dispatch(requestInfo("699179619"));
+    }
 
-  handleRefreshClick(e) {
-    e.preventDefault();
+    onChangeHandler(event) {
+        this.setState({
+            finder: {
+                value: event.target.value.substring(0,9)
+            }
+        }, function () { console.log(this.state.finder.value); });
+    }
 
-    const { dispatch, selectedReddit } = this.props;
-    dispatch(invalidateReddit(selectedReddit));
-    dispatch(fetchPostsIfNeeded(selectedReddit));
-  }
+    onFindClickHandler(event) {
+        const {dispatch} = this.props;
+        dispatch(requestInfo(this.state.finder.value));
+    }
 
-  render () {
-    const { selectedReddit, posts, isFetching, lastUpdated } = this.props;
-    return (
-      <div>
-        <Picker value={selectedReddit}
-                onChange={this.handleChange}
-                options={['reactjs', 'elixir', 'emberjs']} />
-        <p>
-          {lastUpdated &&
-            <span>
-              Last updated at {new Date(lastUpdated).toLocaleTimeString()}.
-              {' '}
-            </span>
-          }
-          {!isFetching &&
-            <a href='#'
-               onClick={this.handleRefreshClick}>
-              Refresh
-            </a>
-          }
-        </p>
-        {isFetching && posts.length === 0 &&
-          <h2>Loading...</h2>
-        }
-        {!isFetching && posts.length === 0 &&
-          <h2>Empty.</h2>
-        }
-        {posts.length > 0 &&
-          <div style={{ opacity: isFetching ? 0.5 : 1 }}>
-            <Posts posts={posts} />
-          </div>
-        }
-      </div>
-    );
-  }
+
+    render() {
+        return (
+            <div>
+                <Gravatar
+                    image={this.props.image}
+                    first_name={this.props.first_name}
+                    last_name={this.props.last_name}
+                    onClickHandler={ this.onClickHandler }
+                />
+                <Finder
+                    value={ this.state.finder.value }
+                    onChangeHandler={ this.onChangeHandler }
+                    onFindClickHandler={ this.onFindClickHandler }
+                />
+
+                <Tabs defaultActiveKey={1} >
+                    <Tab eventKey={1} title="About Us">
+                        <About></About>
+                    </Tab>
+                    <Tab eventKey={2} title="Repos">
+                        <Repos></Repos>
+                    </Tab>
+                </Tabs>
+
+
+                <hr/>
+
+                <Link to="/about" activeStyle={{ color: 'red' }}> About </Link><nobr></nobr>
+                <Link to="/repos" activeStyle={{ color: 'red' }}> Repositories </Link>
+
+                {this.props.children}
+
+
+            </div>
+        );
+    }
+
+    componentDidMount() {
+        const {dispatch} = this.props;
+        dispatch(requestInfo("564084115"));
+    }
 }
 
 AsyncApp.propTypes = {
-  selectedReddit: PropTypes.string.isRequired,
-  posts: PropTypes.array.isRequired,
-  isFetching: PropTypes.bool.isRequired,
-  lastUpdated: PropTypes.number,
-  dispatch: PropTypes.func.isRequired
+    image: PropTypes.string.isRequired,
+    first_name: PropTypes.string.isRequired,
+    last_name: PropTypes.string.isRequired,
+    dispatch: PropTypes.func.isRequired
 };
 
 function mapStateToProps(state) {
-  const { selectedReddit, postsByReddit } = state;
-  const {
-    isFetching,
-    lastUpdated,
-    items: posts
-  } = postsByReddit[selectedReddit] || {
-    isFetching: true,
-    items: []
-  };
+    const {data} = state;
 
-  return {
-    selectedReddit,
-    posts,
-    isFetching,
-    lastUpdated
-  };
+    return {
+        image: data.cover.source,
+        first_name: data.first_name,
+        last_name: data.last_name
+    };
 }
+
 
 export default connect(mapStateToProps)(AsyncApp);
